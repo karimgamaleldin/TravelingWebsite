@@ -11,7 +11,11 @@ var allDestinationsArray = ['annapurna','bali','inca','paris','rome','santorini'
 
 var app = express();
 
-
+var embAcc = {
+  username: 'admin',
+  password: 'admin',
+  wantToGoList: []
+}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -108,23 +112,31 @@ app.get('/',function(req,res){
 app.post('/',function(req,res){
   var x = req.body.username;
   var y = req.body.password;
-  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
-    if (err) throw err;
-    var db = client.db('myDB');
-    db.collection('myCollection').find({username : x}).toArray(function(err,results){
+  if(x === embAcc.username && y === embAcc.password){
+    req.session.user = embAcc;
+    req.session.save();
+    res.redirect('/home');
+  }
+  else {
+    MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
       if (err) throw err;
-      if(results.length === 0 ){
-        alert("Invalid username: Please try again!");
-      }
-      else if (results[0].password === y){
-        req.session.user = results[0];
-        res.redirect('/home');
-      }
-      else {
-        alert("Wrong Password: Please try again!");
-      }
+      var db = client.db('myDB');
+      db.collection('myCollection').find({username : x}).toArray(function(err,results){
+        if (err) throw err;
+        if(results.length === 0 ){
+          alert("Invalid username: Please try again!");
+        }
+        else if (results[0].password === y){
+          req.session.user = results[0];
+          req.session.save();
+          res.redirect('/home');
+        }
+        else {
+          alert("Wrong Password: Please try again!");
+        }
+      });
     });
-  });
+  }
 });
 
 
