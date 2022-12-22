@@ -108,13 +108,13 @@ app.get('/',function(req,res){
 app.post('/',function(req,res){
   var x = req.body.username;
   var y = req.body.password;
-  MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
+  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
     if (err) throw err;
-    var db = client.db('MyDB');
-    db.collection('Users').find({username : x}).toArray(function(err,results){
+    var db = client.db('myDB');
+    db.collection('myCollection').find({username : x}).toArray(function(err,results){
       if (err) throw err;
       if(results.length === 0 ){
-        alert("Invalid username: Please check try again!");
+        alert("Invalid username: Please try again!");
       }
       else if (results[0].password === y){
         req.session.user = results[0];
@@ -131,13 +131,13 @@ app.post('/',function(req,res){
 //---------------------------------------------------------------------------------------------------------------------------
 // Home:
 function wantToGoInsert(req,res,destination){
-  MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
+  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
     if(err) throw err;
-    var db = client.db('MyDB');
+    var db = client.db('myDB');
     if(!req.session.user.wantToGoList.includes(destination)){
       req.session.user.wantToGoList.push(destination);
       req.session.save();
-      db.collection('Users').updateOne(
+      db.collection('myCollection').updateOne(
         {username: req.session.user.username},
         {$set: {wantToGoList: req.session.user.wantToGoList}}
       );
@@ -164,9 +164,9 @@ app.get('/search',checkSession,function(req,res){
 app.post('/search',function(req,res){
 
   var x = req.body.Search;
-  MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
+  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
       if (err) throw err;    
-      var db = client.db('MyDB');
+      var db = client.db('myDB');
       var destarr = []
       for (var i = 0; i<allDestinationsArray.length ; i++)
       {
@@ -189,22 +189,22 @@ app.get('/registration',function(req,res){
   res.render('registration');
 });
 
-app.post('/registration',function(req,res){
+app.post('/register',function(req,res){
   var x = req.body.username;
   var y = req.body.password;
-  MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
+  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
     if (err) throw err;
-    var db = client.db('MyDB');
+    var db = client.db('myDB');
     if(req.body.username == ''){
       alert("Userrname is Empty: Please choose your username.");
     } else if (req.body.password == ''){
       alert("Password is empty: Please write your password.");
     }
     else {
-      db.collection('Users').find({username : x}).toArray((err,results) => {
+      db.collection('myCollection').find({username : x}).toArray((err,results) => {
         if(err) throw err;
         if(results.length === 0 ){
-          db.collection('Users').insertOne({username: x , password: y , wantToGoList : []});
+          db.collection('myCollection').insertOne({username: x , password: y , wantToGoList : []});
           res.redirect('/');      
        }
        else if(results[0].username === x){
