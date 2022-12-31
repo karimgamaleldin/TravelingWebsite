@@ -25,7 +25,6 @@ app.use(
     secret:"secret"
   })
 );
-app.listen(3000);
 
 
 // constants:
@@ -276,16 +275,9 @@ app.get('/wanttogo',checkSession,function(req,res){
   res.render('wanttogo',{wantToGoDest : req.session.user.wantToGoList , pages : arr });
 });
 
-// MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
-//   var db = client.db('MyDB');
-//   db.collection('Cities').find().toArray(function(err,results){
-//     if (results.length === 0) {
-//       db.collection('Cities').insertOne({cityName: 'annapurna'});
-//       db.collection('Cities').insertOne({cityName: 'bali'});
-//       db.collection('Cities').insertOne({cityName: 'inca'});
-//       db.collection('Cities').insertOne({cityName: 'paris'});
-//       db.collection('Cities').insertOne({cityName: 'rome'});
-//       db.collection('Cities').insertOne({cityName: 'santorini'});
-//     }
-//   })
-// });
+const PORT = process.env.PORT || 3030;
+
+
+app.listen(PORT, () => {
+  console.log(`server started on port ${PORT}`);
+});
