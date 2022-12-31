@@ -5,17 +5,12 @@ var session = require('express-session');
 var MongoClient = require('mongodb').MongoClient;
 var alert = require('alert');
 const { Template } = require('ejs');
-var allDestinationsArray = ['annapurna','bali','inca','paris','rome','santorini']
+
 
 
 
 var app = express();
 
-var embAcc = {
-  username: 'admin',
-  password: 'admin',
-  wantToGoList: []
-}
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -23,10 +18,6 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.listen(3000);
-
-//To Check Session
 app.use(
   session({
     resave:true,
@@ -34,13 +25,71 @@ app.use(
     secret:"secret"
   })
 );
+app.listen(3000);
+
+
+// constants:
+const allDestinationsArray = ['annapurna','bali','inca','paris','rome','santorini'] ;
+var embAcc = {
+  username: 'admin',
+  password: 'admin',
+  wantToGoList: []
+}
+
+//helper functions
 
 function checkSession(req,res,next){
   if(req.session.user) return next();
   else res.redirect('/');
 }
 
+function getRealName(dest) {
+  switch(dest) {
+    case "paris": return "Paris";
+    case "bali": return "Bali Island";
+    case "annapurna": return "Annapurna Circuit";
+    case "inca": return "Inca Trail to Machu Picchu";
+    case "rome": return "Rome";
+    case "santorini": return "Santorini Island";
+    default: return "";
+  }
+}
 
+// function getPageNamesForWantToGo(dest) {
+//   var arr = [];
+//   for (var i = 0 ; i < dest.length ; i++){
+//     switch(dest[i]) {
+//       case "Paris": arr.push("paris"); break;
+//       case "Bali Island": arr.push("bali"); break;
+//       case "Annapurna Circuit": arr.push("annapurna"); break;
+//       case "Inca Trail to Machu Picchu": arr.push("inca"); break;
+//       case "Rome":  arr.push("rome"); break;
+//       case "Santorini Island":  arr.push("santorini"); break;
+//       default: break;
+//     }
+//   }
+//   return arr;
+// }
+
+
+function wantToGoInsert(req,res,destination){
+  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
+    if(err) throw err;
+    var db = client.db('myDB');
+    if(!req.session.user.wantToGoList.includes(getRealName(destination))){
+      req.session.user.wantToGoList.push(getRealName(destination));
+      req.session.save();
+      db.collection('myCollection').updateOne(
+        {username: req.session.user.username},
+        {$set: {wantToGoList: req.session.user.wantToGoList}}
+      );
+    }
+    else {
+      var alertString =  "This Destination (" + getRealName(destination) + ") is in your want to go list";
+      alert(alertString);
+    }
+  });
+}
 //-----------------------------------------------------------------------------------------------------------------------------
 // Hiking , Annapurna & Inca methods:
 app.get('/hiking',checkSession,function(req,res){
@@ -142,28 +191,6 @@ app.post('/',function(req,res){
 
 //---------------------------------------------------------------------------------------------------------------------------
 // Home:
-function wantToGoInsert(req,res,destination){
-  MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
-    if(err) throw err;
-    var db = client.db('myDB');
-    if(!req.session.user.wantToGoList.includes(destination)){
-      req.session.user.wantToGoList.push(destination);
-      req.session.save();
-      db.collection('myCollection').updateOne(
-        {username: req.session.user.username},
-        {$set: {wantToGoList: req.session.user.wantToGoList}}
-      );
-      // db.collection("Users").findOne({username:req.session.user.username},(err,data)=>{
-      //   req.session.user = data;
-      //   req.session.save();
-      // });
-    }
-    else {
-      var alertString =  "This Destination (" + destination + ") is in your want to go list";
-      alert(alertString);
-    }
-  });
-}
 app.get('/home',checkSession,function(req,res){
   res.render('home');
 });
@@ -179,18 +206,22 @@ app.post('/search',function(req,res){
   MongoClient.connect('mongodb://127.0.0.1:27017/myDB',function(err,client){
       if (err) throw err;    
       var db = client.db('myDB');
-      var destarr = []
+      var destarr = [];
+      var destArrRealNames = [];
       for (var i = 0; i<allDestinationsArray.length ; i++)
       {
-        if (allDestinationsArray[i].includes(x.toLowerCase()))
+        if (getRealName(allDestinationsArray[i]).toLowerCase().includes(x.toLowerCase()))
         {
           destarr.push(allDestinationsArray[i]);
+          destArrRealNames.push(getRealName(allDestinationsArray[i]));
         }
       }
       if (destarr.length === 0){
         alert("Not Found")
       }
-      res.render('searchresults',{destination : destarr});
+      res.render('searchresults',
+                  {destination: destarr, 
+                   destinationRealNames: destArrRealNames});
   });
 });
 
@@ -208,7 +239,7 @@ app.post('/register',function(req,res){
     if (err) throw err;
     var db = client.db('myDB');
     if(req.body.username == ''){
-      alert("Userrname is Empty: Please choose your username.");
+      alert("Username is Empty: Please choose your username.");
     } else if (req.body.password == ''){
       alert("Password is empty: Please write your password.");
     }
@@ -227,9 +258,22 @@ app.post('/register',function(req,res){
   });
 });
 
+
 //Want to go list:
 app.get('/wanttogo',checkSession,function(req,res){
-  res.render('wanttogo',{wantToGoDest : req.session.user.wantToGoList});
+  var arr = [];
+  for (var i = 0 ; i < req.session.user.wantToGoList.length ; i++){
+    switch(req.session.user.wantToGoList[i]) {
+      case "Paris": arr.push("paris"); break;
+      case "Bali Island": arr.push("bali"); break;
+      case "Annapurna Circuit": arr.push("annapurna"); break;
+      case "Inca Trail to Machu Picchu": arr.push("inca"); break;
+      case "Rome":  arr.push("rome"); break;
+      case "Santorini Island":  arr.push("santorini"); break;
+      default: break;
+    }
+  }  
+  res.render('wanttogo',{wantToGoDest : req.session.user.wantToGoList , pages : arr });
 });
 
 // MongoClient.connect('mongodb://127.0.0.1:27017/MyDB',function(err,client){
@@ -245,9 +289,3 @@ app.get('/wanttogo',checkSession,function(req,res){
 //     }
 //   })
 // });
-
-
-
-
-
-
